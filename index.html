@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>STAHS | English Wing — 0heat</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root{
+  --bg:#000;
+  --panel:#0b0b0b;
+  --soft:#141414;
+  --heat:#ff2b2b;
+  --cool:#3aa0ff;
+  --text:#f5f5f5;
+  --muted:#888;
+  --danger:#ff4d4d;
+}
+*{box-sizing:border-box;font-family:Segoe UI,Tahoma,sans-serif}
+body{
+  margin:0;min-height:100vh;
+  background:radial-gradient(circle at top,#111,#000);
+  color:var(--text);
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1}}
+@keyframes toast{0%{opacity:0;transform:scale(.9)}20%{opacity:1}80%{opacity:1}100%{opacity:0;transform:scale(.95)}}
+@keyframes particle{to{opacity:0;transform:translateY(-40px) scale(.5)}}
+
+/* login */
+.login{
+  background:var(--panel);
+  padding:34px;width:340px;border-radius:14px;
+  box-shadow:0 0 40px rgba(255,43,43,.25);
+  animation:fadeIn .6s ease forwards
+}
+.login h1{text-align:center;color:var(--heat)}
+.login input{width:100%;padding:10px;margin-bottom:12px;background:#050505;border:1px solid #333;border-radius:6px;color:#fff}
+.login button{width:100%;padding:10px;border:none;border-radius:6px;background:var(--heat);color:#fff;font-weight:600}
+.error{display:none;color:var(--danger);text-align:center}
+
+/* app */
+.app{display:none;width:100%;max-width:1100px;animation:fadeIn .6s ease forwards}
+.header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px}
+.header h2{margin:0}
+.header h1{margin:4px 0 0;font-size:26px;letter-spacing:2px;color:#666}
+
+.unit-toggle button{
+  background:#050505;border:1px solid #333;color:var(--muted);
+  padding:6px 10px;border-radius:6px;cursor:pointer
+}
+.unit-toggle button.active{color:#fff;border-color:#fff}
+
+.room-select{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.room-select button{
+  background:#050505;border:1px solid #333;color:#fff;
+  padding:8px 18px;border-radius:20px;cursor:pointer
+}
+.room-select button.active{border-color:#fff}
+
+.panel{
+  background:var(--panel);
+  border-radius:16px;padding:28px;
+  box-shadow:0 0 35px rgba(0,0,0,.6)
+}
+
+.temp{text-align:center}
+.temp-value{font-size:58px;margin-bottom:6px}
+.controls{display:flex;gap:14px;justify-content:center;margin:12px 0}
+.controls input{width:90px;padding:8px;background:#050505;border:1px solid #333;color:#fff;border-radius:6px;text-align:center}
+.controls button{padding:8px 18px;border-radius:6px;border:none;font-weight:600;cursor:pointer}
+.on{background:#fff;color:#000}
+.off{background:#ff4d4d;color:#200}
+
+select{
+  background:#050505;color:#fff;border:1px solid #333;
+  padding:6px 10px;border-radius:6px
+}
+
+.progress-bar{height:10px;background:#1a1a1a;border-radius:6px;overflow:hidden}
+.progress-fill{height:100%;width:0%;transition:width .6s,background .6s}
+
+.eta{color:var(--muted);margin-top:8px}
+
+/* analytics */
+.analytics{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px;margin-top:28px
+}
+.card{
+  background:#050505;border:1px solid #333;border-radius:12px;padding:14px
+}
+.card h3{margin:0 0 6px;font-size:14px;color:#aaa}
+
+/* toast */
+.toast{
+  position:fixed;bottom:28px;left:50%;
+  transform:translateX(-50%);
+  padding:10px 18px;border-radius:18px;
+  font-weight:600;font-size:14px;
+  opacity:0;pointer-events:none
+}
+.toast.show{animation:toast 1.6s ease forwards}
+
+/* particles */
+.particle{
+  position:fixed;font-size:18px;
+  animation:particle 1.2s ease forwards;
+  pointer-events:none
+}
+
+/* footer */
+.footer{
+  position:fixed;bottom:10px;right:14px;
+  font-size:12px;color:#666
+}
+</style>
+</head>
+
+<body>
+
+<div class="login" id="loginBox">
+  <h1>Admin</h1>
+  <input id="user" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
+  <button onclick="handleLogin()">Authenticate</button>
+  <div class="error" id="err">Invalid credentials</div>
+</div>
+
+<div class="app" id="app">
+  <div class="header">
+    <div>
+      <h2 id="title">STAHS | English Wing</h2>
+      <h1>0heat</h1>
+    </div>
+    <div class="unit-toggle">
+      <button id="cBtn" class="active" onclick="setUnit('C')">°C</button>
+      <button id="fBtn" onclick="setUnit('F')">°F</button>
+    </div>
+  </div>
+
+  <div class="room-select">
+    <button class="active" onclick="setRoom(207,this)">Room 207</button>
+    <button onclick="setRoom(204,this)">Room 204</button>
+  </div>
+
+  <div class="panel">
+    <div class="temp">
+      <div class="temp-value"><span id="temp">--</span>°</div>
+
+      <div class="controls">
+        <input id="target" type="number">
+        <select id="airflow" onchange="setAirflow(this.value)">
+          <option value="low">Low</option>
+          <option value="balanced" selected>Balanced</option>
+          <option value="high">High</option>
+          <option value="turbo">Turbo</option>
+        </select>
+        <button class="on" onclick="powerOn()">ON</button>
+        <button class="off" onclick="powerOff()">OFF</button>
+      </div>
+
+      <div class="eta" id="eta">System idle</div>
+      <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+    </div>
+
+    <div class="analytics">
+      <div class="card"><h3>Runtime</h3><div id="runtime">0 min</div></div>
+      <div class="card"><h3>Energy Used</h3><div id="energy">0.00 kWh</div></div>
+      <div class="card"><h3>Avg Efficiency</h3><div id="efficiency">-- %</div></div>
+      <div class="card"><h3>HVAC Cycles</h3><div id="cycles">0</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<footer class="footer">Made with ♥ by Attila</footer>
+
+<script>
+const USER='admin',PASS='admin';
+const MIN_C=10,MAX_C=35;
+
+const AIRFLOW={
+  low:{rate:0.012,power:0.6},
+  balanced:{rate:0.025,power:1.0},
+  high:{rate:0.045,power:1.6},
+  turbo:{rate:0.075,power:2.4}
+};
+
+let unit='C',currentRoom=207;
+
+function room(start){
+  return{
+    tempC:start,targetC:start,ambientC:start-1,
+    airflow:'balanced',active:false,mode:null,
+    progressBase:0,interval:null,
+    runtime:0,energy:0,cycles:0,eff:[]
+  };
+}
+
+const rooms={207:room(22),204:room(19)};
+const cToF=c=>c*9/5+32,fToC=f=>(f-32)*5/9;
+
+function handleLogin(){
+  if(user.value===USER&&pass.value===PASS){
+    loginBox.style.display='none';app.style.display='block';render();
+  }else err.style.display='block';
+}
+
+function setUnit(u){unit=u;cBtn.classList.toggle('active',u==='C');fBtn.classList.toggle('active',u==='F');render();}
+function setRoom(id,btn){
+  currentRoom=id;
+  document.querySelectorAll('.room-select button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');render();
+}
+function setAirflow(v){rooms[currentRoom].airflow=v;render();}
+
+function powerOn(){
+  const r=rooms[currentRoom];
+  const val=parseFloat(target.value);
+  if(isNaN(val))return;
+  const t=unit==='C'?val:fToC(val);
+  if(t<MIN_C||t>MAX_C){eta.innerText='ERROR: Unsafe target';return;}
+  r.targetC=t;r.progressBase=Math.abs(t-r.tempC)||0.01;
+  r.mode=t>r.tempC?'heating':'cooling';r.active=true;r.cycles++;
+  if(!r.interval)r.interval=setInterval(()=>tick(r),1000);
+  toastMsg('✔ System started',r.mode);
+}
+
+function powerOff(){const r=rooms[currentRoom];r.active=false;r.mode=null;toastMsg('✔ System stopped');}
+
+function tick(r){
+  const flow=AIRFLOW[r.airflow];
+  if(r.active){
+    const d=r.targetC-r.tempC;
+    r.tempC+=Math.sign(d)*flow.rate;
+    const p=flow.power*(1+Math.abs(d)*0.15);
+    r.energy+=p/3600;r.runtime+=1/60;
+    r.eff.push(Math.max(50,95-Math.abs(d)*10));
+    if(Math.abs(d)<0.15){r.tempC=r.targetC;r.active=false;r.mode=null;toastMsg('✔ Target reached');}
+  }else r.tempC+=(r.ambientC-r.tempC)*0.002;
+  if(r===rooms[currentRoom])render();
+}
+
+function render(){
+  const r=rooms[currentRoom];
+  temp.innerText=(unit==='C'?r.tempC:cToF(r.tempC)).toFixed(1);
+  target.value=(unit==='C'?r.targetC:cToF(r.targetC)).toFixed(1);
+  airflow.value=r.airflow;
+
+  const rem=Math.abs(r.targetC-r.tempC);
+  const pct=r.active?100-(rem/r.progressBase*100):0;
+  prog.style.width=Math.max(0,Math.min(100,pct))+'%';
+  prog.style.background=r.mode==='cooling'
+    ?'linear-gradient(90deg,var(--cool),#9ad0ff)'
+    :'linear-gradient(90deg,var(--heat),#ff9a9a)';
+
+  eta.innerText=r.active?`${r.mode} | airflow: ${r.airflow}`:'System idle';
+  runtime.innerText=r.runtime.toFixed(1)+' min';
+  energy.innerText=r.energy.toFixed(3)+' kWh';
+  efficiency.innerText=r.eff.length?(r.eff.reduce((a,b)=>a+b)/r.eff.length).toFixed(1)+' %':'--';
+  cycles.innerText=r.cycles;
+
+  if(r.mode)spawn(r.mode==='heating'?'🔥':'🧊');
+}
+
+function toastMsg(t,m){
+  toast.textContent=t;
+  toast.style.background=m==='cooling'?'#1b4fff':'#111';
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'),1600);
+}
+
+function spawn(e){
+  const p=document.createElement('div');
+  p.className='particle';p.textContent=e;
+  p.style.left=Math.random()*innerWidth+'px';p.style.bottom='60px';
+  document.body.appendChild(p);setTimeout(()=>p.remove(),1200);
+}
+</script>
+</body>
+</html>
